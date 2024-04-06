@@ -21,6 +21,8 @@ void ofApp::setup() {
 
 	laserManager.addCustomParameter(colour.set("Colour", ofColor(0, 255, 0), ofColor(0), ofColor(255)));
 	laserManager.addCustomParameter(drawAttractors.set("Draw Attractors", false));
+	laserManager.addCustomParameter(useNearestNeighbor.set("Nearest Neighbor", false));
+	
 
 	ofParameter<string> description;
 	description.setName("description");
@@ -40,6 +42,9 @@ void ofApp::setup() {
 		}
 		attractors.push_back(attractor);
 	}
+
+	ofLogToConsole();
+	ofSetLogLevel(OF_LOG_VERBOSE);
 }
 
 //--------------------------------------------------------------
@@ -92,8 +97,8 @@ void ofApp::drawDots() {
 	for (int i = 0; i < amountOfEmissors; i++)
 	{
 		Particle particle;
-		particle.x = laserWidth / 2;
-		particle.y = laserHeight;
+		particle.pos.x = laserWidth / 2;
+		particle.pos.y = laserHeight;
 		particle.angle = ofRandom(-0.2, 0.2) + PI + HALF_PI;
 		particle.attractor = floor(ofRandom(MAX_ATTRACTORS));
 		particles.push_back(particle);
@@ -122,12 +127,12 @@ void ofApp::drawDots() {
 	// particles
 	for (int index = 0; index < particles.size(); ++index) {
 		Particle& particle = particles[index];
-		particle.angle += (ofNoise(particle.x / 10.f + ofRandom(-1, 1), particle.y / 10.f, time) - 0.46f) * 0.2f;
-		float vel = ofMap(particle.y, originY, 0, MIN_VELOCITY, MAX_VELOCITY);
-		particle.x += cos(particle.angle) * vel;
-		particle.y += sin(particle.angle) * vel;
+		particle.angle += (ofNoise(particle.pos.x / 10.f + ofRandom(-1, 1), particle.pos.y / 10.f, time) - 0.46f) * 0.2f;
+		float vel = ofMap(particle.pos.y, originY, 0, MIN_VELOCITY, MAX_VELOCITY);
+		particle.pos.x += cos(particle.angle) * vel;
+		particle.pos.y += sin(particle.angle) * vel;
 
-		if (particle.x < 0 || particle.x > laserWidth || particle.y < 0 || particle.y > laserHeight) {
+		if (particle.pos.x < 0 || particle.pos.x > laserWidth || particle.pos.y < 0 || particle.pos.y > laserHeight) {
 			particles.erase(particles.begin() + index);
 		}
 		else {
@@ -140,19 +145,6 @@ void ofApp::drawDots() {
 	}
 
 	/**/
-	
-
-	/*
-	* //TODO
-	* Implement TSP to SORT
-	* 
-	sort(particles.begin(), particles.end(), [](const Particle& p1, const Particle& p2) {
-		return p1.x < p2.x;
-	});
-	sort(particles.begin(), particles.end(), [](const Particle& p1, const Particle& p2) {
-		return p1.y < p2.y;
-	});
-	/**/
 
 	if (drawAttractors) {
 		for (auto& attractor : attractors) {
@@ -162,8 +154,17 @@ void ofApp::drawDots() {
 		}
 	}
 
-	for (auto& particle : particles) {
-		laserManager.drawDot(particle.x, particle.y, colour, 1, renderProfile);
+	if (useNearestNeighbor) {
+		vector<int> route = nearestNeighbor();
+		for (int i = 0; i < route.size(); i++)
+		{
+			laserManager.drawDot(particles[route[i]].pos.x, particles[route[i]].pos.y, colour, 1, renderProfile);
+		}
+	}
+	else {
+		for (auto& particle : particles) {
+			laserManager.drawDot(particle.pos.x, particle.pos.y, colour, 1, renderProfile);
+		}
 	}
 }
 
@@ -197,7 +198,7 @@ void ofApp::mouseReleased(ofMouseEventArgs& e) {
 
 ofVec2f ofApp::findClosest(Particle& particle) {
 	for (auto& point : attractors[particle.attractor].points) {
-		if (point.y < particle.y) {
+		if (point.y < particle.pos.y) {
 			return point;
 		}
 	}
@@ -205,9 +206,38 @@ ofVec2f ofApp::findClosest(Particle& particle) {
 }
 
 float ofApp::findAngle(Particle& p1, ofVec2f& p2) {
-	return atan2(p2.y - p1.y, p2.x - p1.x);
+	return atan2(p2.y - p1.pos.y, p2.x - p1.pos.x);
 }
 
 float ofApp::custom_mod(float x, float m) {
 	return fmod((std::fmod(x, m) + m), m);
+}
+
+vector<int> ofApp::nearestNeighbor() {
+	int n = particles.size();
+	vector<bool> visited(n, false);
+	visited[0] = true;
+	int current = 0;
+	int next = 0;
+	int minDist;
+	vector<int> path;
+	path.push_back(0);
+
+	for (int i = 0; i < n - 1; ++i) {
+		minDist = numeric_limits<int>::max();
+		for (int j = 0; j < n; ++j) {
+			if (!visited[j] && j != current) {
+				int dist = particles[current].pos.squareDistance(particles[j].pos);
+				if (dist < minDist) {
+					minDist = dist;
+					next = j;
+				}
+			}
+		}
+		visited[next] = true;
+		current = next;
+		path.push_back(next);
+	}
+
+	return path;
 }

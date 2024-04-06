@@ -17,8 +17,7 @@ struct Attractor {
 };
 
 struct Particle {
-	float x;
-	float y;
+	ofVec2f pos;
 	float angle;
 	int attractor;
 };
@@ -43,6 +42,7 @@ public:
 	ofParameter<int> renderProfileIndex;
 	ofParameter<string> renderProfileLabel;
 	ofParameter<bool> drawAttractors;
+	ofParameter<bool> useNearestNeighbor;
 
 	ofxLaser::Manager laserManager;
 
@@ -61,5 +61,6 @@ public:
 	ofVec2f findClosest(Particle& particle);
 	float findAngle(Particle& p1, ofVec2f& p2);
 	float custom_mod(float x, float m);
+	vector<int> nearestNeighbor();
 };
 
