@@ -41,6 +41,8 @@ public:
 	ofParameter<float> timeSpeed;
 	ofParameter<int> renderProfileIndex;
 	ofParameter<string> renderProfileLabel;
+	ofParameter<float> dotIntensity;
+	ofParameter<float> dotProbability;
 	ofParameter<bool> drawAttractors;
 	ofParameter<bool> useNearestNeighbor;
 

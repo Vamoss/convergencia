@@ -14,6 +14,8 @@ void ofApp::setup() {
 	// app you can add extra params to the laser GUI
 	laserManager.addCustomParameter(renderProfileLabel);
 	laserManager.addCustomParameter(renderProfileIndex.set("Render Profile", 0, 0, 2));
+	laserManager.addCustomParameter(dotIntensity.set("Dot Intensity", 1, 0, 1));
+	laserManager.addCustomParameter(dotProbability.set("Dot Probability", 1, 0, 1));	
 
 	laserManager.addCustomParameter(convergence.set("Convergence", 0, 0, 1));
 	laserManager.addCustomParameter(amountOfEmissors.set("Emissors", 1, 0, MAX_EMISSORS));
@@ -61,6 +63,18 @@ void ofApp::draw() {
 
 	drawDots();
 
+	for (int i = particles.size(); i < 200; i++) {
+		float angle = ofRandom(TWO_PI);
+		float radius = sqrt(ofRandom(1)) * 30;
+		int x = laserWidth / 2 + sin(angle) * radius;
+		int y = laserHeight - 40 + cos(angle) * radius;
+		laserManager.drawDot(x, y, ofColor(100, 100, 100), dotIntensity, OFXLASER_PROFILE_FAST);
+	}
+
+	//float moveSpeed = ofMap(particles.size(), 10, 80, 0.5, 50, true);
+	//laserManager.getLaser(0).scannerSettings.moveSpeed = moveSpeed;
+	// cout << laserManager.getLaser(0).scannerSettings.moveSpeed << endl;
+
 	// sends points to the DAC
 	laserManager.send();
 
@@ -96,12 +110,14 @@ void ofApp::drawDots() {
 	//emissors
 	for (int i = 0; i < amountOfEmissors; i++)
 	{
-		Particle particle;
-		particle.pos.x = laserWidth / 2;
-		particle.pos.y = laserHeight;
-		particle.angle = ofRandom(-0.2, 0.2) + PI + HALF_PI;
-		particle.attractor = floor(ofRandom(MAX_ATTRACTORS));
-		particles.push_back(particle);
+		if (ofRandom(1) <= dotProbability) {
+			Particle particle;
+			particle.pos.x = laserWidth / 2;
+			particle.pos.y = laserHeight;
+			particle.angle = ofRandom(-0.2, 0.2) + PI + HALF_PI;
+			particle.attractor = floor(ofRandom(MAX_ATTRACTORS));
+			particles.push_back(particle);
+		}
 	}
 
 	//attractors
@@ -125,9 +141,9 @@ void ofApp::drawDots() {
 
 	//*
 	// particles
-	for (int index = 0; index < particles.size(); ++index) {
+	for (int index = particles.size() - 1; index >= 0; index--) {
 		Particle& particle = particles[index];
-		particle.angle += (ofNoise(particle.pos.x / 10.f + ofRandom(-1, 1), particle.pos.y / 10.f, time) - 0.46f) * 0.2f;
+		particle.angle += (ofNoise(particle.pos.x / 10.f + ofRandom(-1, 1), particle.pos.y / 10.f, time) - 0.5f) * 0.2f;
 		float vel = ofMap(particle.pos.y, originY, 0, MIN_VELOCITY, MAX_VELOCITY);
 		particle.pos.x += cos(particle.angle) * vel;
 		particle.pos.y += sin(particle.angle) * vel;
@@ -158,12 +174,12 @@ void ofApp::drawDots() {
 		vector<int> route = nearestNeighbor();
 		for (int i = 0; i < route.size(); i++)
 		{
-			laserManager.drawDot(particles[route[i]].pos.x, particles[route[i]].pos.y, colour, 1, renderProfile);
+			laserManager.drawDot(particles[route[i]].pos.x, particles[route[i]].pos.y, colour, dotIntensity, renderProfile);
 		}
 	}
 	else {
 		for (auto& particle : particles) {
-			laserManager.drawDot(particle.pos.x, particle.pos.y, colour, 1, renderProfile);
+			laserManager.drawDot(particle.pos.x, particle.pos.y, colour, dotIntensity, renderProfile);
 		}
 	}
 }
@@ -215,17 +231,21 @@ float ofApp::custom_mod(float x, float m) {
 
 vector<int> ofApp::nearestNeighbor() {
 	int n = particles.size();
+	vector<int> path;
+
+	if (n == 0)
+		return path;
+
 	vector<bool> visited(n, false);
 	visited[0] = true;
 	int current = 0;
 	int next = 0;
 	int minDist;
-	vector<int> path;
 	path.push_back(0);
 
 	for (int i = 0; i < n - 1; ++i) {
 		minDist = numeric_limits<int>::max();
-		for (int j = 0; j < n; ++j) {
+		for (int j = 1; j < n; ++j) {
 			if (!visited[j] && j != current) {
 				int dist = particles[current].pos.squareDistance(particles[j].pos);
 				if (dist < minDist) {
