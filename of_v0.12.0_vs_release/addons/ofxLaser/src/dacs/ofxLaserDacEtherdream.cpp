@@ -168,7 +168,7 @@ void DacEtherdream :: setup(string _id, string _ip) {
 
 void DacEtherdream :: reset() {
 	if(lock()) {
-		resetFlag = true;
+		resetFlag = false;
 		unlock();
 	}
 	
@@ -534,7 +534,7 @@ void DacEtherdream :: threadedFunction(){
 				unlock();
                 if(dataSent) {
                     if(verbose) logData();
-                    if(!waitForAck('d')) resetFlag = true; 
+                    if(!waitForAck('d')) resetFlag = false; 
                 }
 			} else if(isThreadRunning()) {
 				// if we're not sending data, then let's ping the etherdream so it can
@@ -556,7 +556,7 @@ void DacEtherdream :: threadedFunction(){
 		if(!connected) {
 			if(socket.available()) {
 				connected = true;
-				resetFlag = true;
+				resetFlag = false;
 			}
 			
 		}

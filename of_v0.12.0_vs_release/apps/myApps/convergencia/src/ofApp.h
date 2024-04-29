@@ -45,6 +45,8 @@ public:
 	ofParameter<float> dotProbability;
 	ofParameter<bool> drawAttractors;
 	ofParameter<bool> useNearestNeighbor;
+	ofParameter<int> arduinoIndex;
+	ofParameter<string> arduinoHistory;
 
 	ofxLaser::Manager laserManager;
 
@@ -64,5 +66,14 @@ public:
 	float findAngle(Particle& p1, ofVec2f& p2);
 	float custom_mod(float x, float m);
 	vector<int> nearestNeighbor();
+
+	ofSerial serial;
+	ofBuffer serialReadBuffer;
+	float timeLastTryConnect = 0.;
+	string serialReadString = "";
+	void updateArduino();
+	void processSerialData(int data);
+
+	vector<int> arduinoValues;
 };
 

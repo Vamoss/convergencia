@@ -4,11 +4,18 @@
 
 //--------------------------------------------------------------
 void ofApp::setup() {
+	ofLogToConsole();
+	ofSetLogLevel(OF_LOG_VERBOSE);
+
 	drawUI = true;
 
 	laserWidth = 800;
 	laserHeight = 800;
 	laserManager.setCanvasSize(laserWidth, laserHeight);
+
+	serial.listDevices();
+	vector <ofSerialDeviceInfo> usbDevices = serial.getDeviceList();
+
 
 	// if you don't want to manage your own GUI for your
 	// app you can add extra params to the laser GUI
@@ -24,12 +31,15 @@ void ofApp::setup() {
 	laserManager.addCustomParameter(colour.set("Colour", ofColor(0, 255, 0), ofColor(0), ofColor(255)));
 	laserManager.addCustomParameter(drawAttractors.set("Draw Attractors", false));
 	laserManager.addCustomParameter(useNearestNeighbor.set("Nearest Neighbor", false));
-	
+	laserManager.addCustomParameter(arduinoIndex.set("Arduino Index", 0, 0, usbDevices.size()-1));	
 
 	ofParameter<string> description;
 	description.setName("description");
 	description.set("INSTRUCTIONS : \nTAB to toggle output editor\nSPACE to hide the UI\nC to clear the particles");
 	laserManager.addCustomParameter(description);
+
+	arduinoHistory.setName("Arduino Values");
+	laserManager.addCustomParameter(arduinoHistory);
 
 	for (int i = 0; i < MAX_ATTRACTORS; i++)
 	{
@@ -45,14 +55,18 @@ void ofApp::setup() {
 		attractors.push_back(attractor);
 	}
 
-	ofLogToConsole();
-	ofSetLogLevel(OF_LOG_VERBOSE);
+	int baud = 115200;
+	ofLogNotice("Attempting to connect to serial device: ") << arduinoIndex;
+	serial.setup(arduinoIndex, baud);
+	timeLastTryConnect = ofGetElapsedTimef();
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
 	// prepares laser manager to receive new points
 	laserManager.update();
+
+	updateArduino();
 }
 
 
@@ -82,6 +96,74 @@ void ofApp::draw() {
 		laserManager.drawUI();
 
 
+}
+
+void ofApp::updateArduino() {
+	if (serial.isInitialized()) {
+		int numBytesToRead = serial.available();
+		if (numBytesToRead > 512) {
+			numBytesToRead = 512;
+		}
+		if (numBytesToRead > 0) {
+			serialReadBuffer.clear();
+			serial.readBytes(serialReadBuffer, numBytesToRead);
+			serialReadString = serialReadBuffer.getText();
+
+			string fullMessage = "";
+			for (int i = 0; i < serialReadString.length(); i++) {
+				unsigned char character = serialReadString[i];
+				if (character == '\n' || character == '\r' || character == '\t' || character == 13) {
+					if (fullMessage.length() > 0) {
+						processSerialData(ofToInt(fullMessage));
+					}
+					fullMessage = "";
+				}
+				else {
+					fullMessage += character;
+				}
+
+				if (fullMessage.length() > 512) {
+					fullMessage = "";
+				}
+			}
+		}
+	}
+	else {
+		float etimef = ofGetElapsedTimef();
+		if (etimef - timeLastTryConnect > 10.0) {
+			serial.getDeviceList();
+			timeLastTryConnect = etimef;
+			int baud = 115200;
+			ofLogNotice("Attempting to connect to serial device: ") << arduinoIndex;
+			serial.setup(arduinoIndex, baud);
+		}
+	}
+}
+
+void ofApp::processSerialData(int data) {
+	float pct;
+	if (arduinoValues.size() > 0) {
+		int maxValue = *max_element(arduinoValues.begin(), arduinoValues.end());
+		pct = ofClamp((float)data / (float)maxValue, 0, 1);
+		convergence.set(pct * pct * pct * pct * pct * pct * pct * pct * pct);
+		dotProbability.set(sqrt(pct));
+	}
+	else {
+		pct = 1;
+	}
+
+	string lastHistory = ofToString(floor(pct * 100)) + "% " + ofToString(data);
+	for (int i = 0; i < 12; i++) {
+		if (i < arduinoValues.size()) {
+			lastHistory += ", " + ofToString(arduinoValues[arduinoValues.size() - 1 - i]);
+		}
+	}
+	arduinoHistory.set(lastHistory);
+
+	arduinoValues.push_back(data);
+	if (arduinoValues.size() > 100) {
+		arduinoValues.erase(arduinoValues.begin());
+	}
 }
 
 
