@@ -77,9 +77,10 @@ void ofApp::draw() {
 
 	drawDots();
 
+	float time = ofGetElapsedTimef();
 	for (int i = particles.size(); i < 200; i++) {
-		float angle = ofRandom(TWO_PI);
-		float radius = sqrt(ofRandom(1)) * 30;
+		float angle = ofNoise(time * 0.28f, (float)i * 100.0f) * TWO_PI * 2;
+		float radius = sqrt(ofNoise(time * 1.85f, (float)i * 954.0f)) * 30;
 		int x = laserWidth / 2 + sin(angle) * radius;
 		int y = laserHeight - 40 + cos(angle) * radius;
 		laserManager.drawDot(x, y, ofColor(100, 100, 100), dotIntensity, OFXLASER_PROFILE_FAST);
@@ -161,7 +162,7 @@ void ofApp::processSerialData(int data) {
 	arduinoHistory.set(lastHistory);
 
 	arduinoValues.push_back(data);
-	if (arduinoValues.size() > 100) {
+	if (arduinoValues.size() > 30) {
 		arduinoValues.erase(arduinoValues.begin());
 	}
 }
@@ -195,7 +196,7 @@ void ofApp::drawDots() {
 		if (ofRandom(1) <= dotProbability) {
 			Particle particle;
 			particle.pos.x = laserWidth / 2;
-			particle.pos.y = laserHeight;
+			particle.pos.y = laserHeight - 30;
 			particle.angle = ofRandom(-0.2, 0.2) + PI + HALF_PI;
 			particle.attractor = floor(ofRandom(MAX_ATTRACTORS));
 			particles.push_back(particle);
