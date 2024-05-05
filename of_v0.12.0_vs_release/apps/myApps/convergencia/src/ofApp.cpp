@@ -6,12 +6,15 @@
 void ofApp::setup() {
 	ofLog::setChannel(std::make_shared<ofCustomLoggerChannel>("log.txt", true));
 	ofSetLogLevel(OF_LOG_VERBOSE);
+	ofSetFrameRate(60);
 
 	drawUI = true;
 
 	laserWidth = 800;
 	laserHeight = 800;
 	laserManager.setCanvasSize(laserWidth, laserHeight);
+	laserManager.globalBrightness = 1;
+	laserManager.armAllLasers();
 
 	serial.listDevices();
 	vector <ofSerialDeviceInfo> usbDevices = serial.getDeviceList();
@@ -31,7 +34,7 @@ void ofApp::setup() {
 	laserManager.addCustomParameter(colour.set("Colour", ofColor(0, 255, 0), ofColor(0), ofColor(255)));
 	laserManager.addCustomParameter(drawAttractors.set("Draw Attractors", false));
 	laserManager.addCustomParameter(useNearestNeighbor.set("Nearest Neighbor", false));
-	laserManager.addCustomParameter(arduinoIndex.set("Arduino Index", 0, 0, usbDevices.size()-1));	
+	laserManager.addCustomParameter(arduinoIndex.set("Arduino Index", 0, 0, 4));	
 
 	ofParameter<string> description;
 	description.setName("description");
