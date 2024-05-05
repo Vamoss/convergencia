@@ -66,7 +66,9 @@ void ofApp::setup() {
 
 //--------------------------------------------------------------
 void ofApp::update() {
-	// prepares laser manager to receive new points
+	if(!laserManager.areAllLasersArmed())
+		laserManager.armAllLasers();
+
 	laserManager.update();
 
 	updateArduino();
