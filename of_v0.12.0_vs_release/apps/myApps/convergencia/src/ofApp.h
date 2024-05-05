@@ -22,6 +22,24 @@ struct Particle {
 	int attractor;
 };
 
+class ofCustomLoggerChannel : public ofFileLoggerChannel {
+public:
+	ofCustomLoggerChannel(const of::filesystem::path& path, bool append) {
+		ofFileLoggerChannel::setFile(path, append);
+	}
+
+	void log(ofLogLevel level, const std::string& module, const std::string& message) {
+		ofFileLoggerChannel::log(level, module, message);
+
+		std::ostream& out = level < OF_LOG_ERROR ? std::cout : std::cerr;
+		out << "[" << ofGetLogLevelName(level, true) << "] ";
+		if (module != "") {
+			out << module << ": ";
+		}
+		out << message << std::endl;
+	}
+};
+
 class ofApp : public ofBaseApp {
 
 public:

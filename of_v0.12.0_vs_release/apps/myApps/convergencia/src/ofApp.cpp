@@ -4,7 +4,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-	ofLogToConsole();
+	ofLog::setChannel(std::make_shared<ofCustomLoggerChannel>("log.txt", true));
 	ofSetLogLevel(OF_LOG_VERBOSE);
 
 	drawUI = true;
